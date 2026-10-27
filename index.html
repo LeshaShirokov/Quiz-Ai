@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiz-Ai — конструктор квизов</title>
+  <meta name="description" content="Конструктор квизов на HTML, CSS и чистом JavaScript: вопросы с выбором одного и нескольких ответов, числом и словом.">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('quiz-ai:theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="static/css/style.css?v=1">
+</head>
+<body data-mode="builder">
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="./" aria-label="Quiz-Ai — на главную">
+        <span class="brand-mark" aria-hidden="true">Q</span>
+        <span class="brand-name">Quiz-Ai</span>
+      </a>
+      <nav class="mode-tabs" aria-label="Режим">
+        <button type="button" id="tab-builder" class="tab" aria-current="page">Конструктор</button>
+        <button type="button" id="tab-player" class="tab" aria-current="false">Прохождение</button>
+      </nav>
+      <button type="button" id="theme-toggle" class="btn btn-icon theme-toggle" aria-label="Переключить тему">
+        <svg class="icon icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M21 14.6A9 9 0 0 1 9.4 3a.6.6 0 0 0-.8-.7A10 10 0 1 0 21.7 15.4a.6.6 0 0 0-.7-.8z"/>
+        </svg>
+        <svg class="icon icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/>
+          </g>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main" class="container" tabindex="-1">
+    <!-- Конструктор -->
+    <section id="view-builder" aria-labelledby="builder-heading">
+      <div class="page-head">
+        <div>
+          <h1 id="builder-heading">Конструктор квизов</h1>
+          <p class="lead">Создайте квиз из вопросов четырёх типов, пройдите его сами или поделитесь ссылкой.</p>
+        </div>
+        <p class="save-status" id="save-status" aria-live="polite"></p>
+      </div>
+
+      <div class="card meta-card">
+        <div class="field">
+          <label class="field-label" for="quiz-title">Название квиза</label>
+          <input class="input input-lg" id="quiz-title" type="text" placeholder="Например: Знаешь ли ты географию?" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="field-label" for="quiz-desc">Описание <span class="muted">(необязательно)</span></label>
+          <textarea class="input" id="quiz-desc" rows="2" placeholder="Пара слов о квизе для участников"></textarea>
+        </div>
+        <div class="toolbar" role="group" aria-label="Файл и пример">
+          <button type="button" class="btn btn-secondary" id="btn-sample">Загрузить пример</button>
+          <button type="button" class="btn btn-secondary" id="btn-import">Импорт JSON</button>
+          <input type="file" id="file-import" accept="application/json,.json" hidden>
+          <button type="button" class="btn btn-secondary" id="btn-export">Экспорт JSON</button>
+          <button type="button" class="btn btn-ghost" id="btn-new">Новый квиз</button>
+        </div>
+      </div>
+
+      <div id="builder-errors" class="errors-box" role="alert" aria-live="assertive" hidden></div>
+
+      <div class="section-head">
+        <h2 class="section-title">Вопросы <span class="muted" id="question-count"></span></h2>
+      </div>
+
+      <div id="empty-state" class="empty-state">
+        <p>Пока нет ни одного вопроса.</p>
+        <p class="muted">Выберите тип ниже и нажмите «Добавить вопрос» или загрузите пример.</p>
+      </div>
+
+      <div id="questions" class="questions"></div>
+
+      <div class="card add-card">
+        <div class="field add-field">
+          <label class="field-label" for="add-type">Тип нового вопроса</label>
+          <select class="input" id="add-type">
+            <option value="single">Один вариант ответа</option>
+            <option value="multiple">Несколько вариантов ответа</option>
+            <option value="number">Число</option>
+            <option value="word">Слово без пробелов</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-secondary" id="btn-add">+ Добавить вопрос</button>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn-primary btn-lg" id="btn-play">Пройти квиз</button>
+        <button type="button" class="btn btn-secondary btn-lg" id="btn-share">Скопировать ссылку</button>
+      </div>
+
+      <div id="share-box" class="card share-box" hidden>
+        <label class="field-label" for="share-url">Ссылка на квиз (квиз закодирован прямо в ссылке, сервер не нужен)</label>
+        <div class="share-row">
+          <input class="input" id="share-url" type="text" readonly>
+          <button type="button" class="btn btn-secondary" id="share-copy">Копировать</button>
+          <button type="button" class="btn btn-ghost" id="share-close">Скрыть</button>
+        </div>
+        <p id="share-warning" class="warning" role="status" hidden></p>
+      </div>
+    </section>
+
+    <!-- Прохождение -->
+    <section id="view-player" aria-label="Прохождение квиза" hidden>
+      <p id="shared-banner" class="info-banner" hidden>Вы проходите квиз по ссылке.</p>
+      <div id="player-root" class="player"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Quiz-Ai — статический конструктор квизов на HTML, CSS и чистом JavaScript. Данные хранятся только в вашем браузере.</p>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="static/js/core.js?v=1"></script>
+  <script src="static/js/storage.js?v=1"></script>
+  <script src="static/js/ui.js?v=1"></script>
+  <script src="static/js/builder.js?v=1"></script>
+  <script src="static/js/player.js?v=1"></script>
+  <script src="static/js/app.js?v=1"></script>
+</body>
+</html>
